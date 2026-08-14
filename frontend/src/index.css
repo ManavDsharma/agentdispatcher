@@ -1,0 +1,62 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Surfaces — near-black, layered depth */
+  --color-bg-base: #0b0e14;
+  --color-bg-surface: #12151c;
+  --color-bg-surface-hover: #171b24;
+  --color-bg-elevated: #1a1e28;
+
+  /* Borders */
+  --color-border: #232733;
+  --color-border-strong: #2e3340;
+
+  /* Text */
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #9aa1b0;
+  --color-text-muted: #6b7280;
+
+  /* Accent — indigo/violet */
+  --color-accent: #5b5fef;
+  --color-accent-hover: #6d71f5;
+  --color-accent-soft: #5b5fef24;
+
+  /* Priority colors */
+  --color-priority-critical: #f87171;
+  --color-priority-critical-bg: #ef444420;
+  --color-priority-high: #fbbf24;
+  --color-priority-high-bg: #f59e0b20;
+  --color-priority-medium: #eab308;
+  --color-priority-medium-bg: #eab30820;
+  --color-priority-low: #9aa1b0;
+  --color-priority-low-bg: #9aa1b01a;
+
+  /* Status colors */
+  --color-status-open: #7dd3fc;
+  --color-status-open-bg: #0ea5e920;
+  --color-status-progress: #818cf8;
+  --color-status-progress-bg: #6366f120;
+  --color-status-pending: #fbbf24;
+  --color-status-pending-bg: #f59e0b20;
+  --color-status-resolved: #4ade80;
+  --color-status-resolved-bg: #22c55e20;
+
+  /* SLA urgency */
+  --color-sla-critical: #f87171;
+  --color-sla-warning: #fbbf24;
+  --color-sla-safe: #9aa1b0;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--color-accent-soft);
+}
