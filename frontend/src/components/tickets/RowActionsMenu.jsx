@@ -18,20 +18,20 @@ export default function RowActionsMenu({ onReminder, onEscalate }) {
     <div className="relative inline-block text-left" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-bg-surface-hover hover:text-text-primary"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-ink-secondary transition-colors hover:bg-surface-hover hover:text-ink"
         aria-label="Row actions"
       >
         <MoreHorizontal size={16} strokeWidth={1.75} />
       </button>
 
       {open && (
-        <div className="absolute right-0 z-10 mt-1 w-52 overflow-hidden rounded-md border border-border bg-bg-elevated py-1 shadow-lg">
+        <div className="absolute right-0 z-10 mt-1 w-52 overflow-hidden rounded-md border border-surface-border bg-surface py-1 shadow-lg">
           <button
             onClick={() => {
               setOpen(false);
               onReminder();
             }}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-text-secondary transition-colors hover:bg-bg-surface-hover hover:text-text-primary"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-ink-secondary transition-colors hover:bg-brand-soft hover:text-brand"
           >
             <Mail size={14} strokeWidth={1.75} />
             Send reminder email
@@ -41,7 +41,7 @@ export default function RowActionsMenu({ onReminder, onEscalate }) {
               setOpen(false);
               onEscalate();
             }}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-text-secondary transition-colors hover:bg-bg-surface-hover hover:text-text-primary"
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-ink-secondary transition-colors hover:bg-brand-soft hover:text-brand"
           >
             <ArrowUpCircle size={14} strokeWidth={1.75} />
             Escalate

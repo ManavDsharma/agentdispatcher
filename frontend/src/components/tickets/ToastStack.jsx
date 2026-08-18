@@ -8,9 +8,9 @@ export default function ToastStack({ toasts }) {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className="flex items-start gap-2.5 rounded-md border border-border bg-bg-elevated px-4 py-3 text-sm text-text-primary shadow-lg"
+          className="flex items-start gap-2.5 rounded-md border border-surface-border bg-surface px-4 py-3 text-sm text-ink shadow-lg"
         >
-          <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-status-resolved" strokeWidth={1.75} />
+          <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-brand" strokeWidth={1.75} />
           <span>{toast.message}</span>
         </div>
       ))}

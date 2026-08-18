@@ -1,5 +1,5 @@
 const STATE_COLORS = {
-  connected: "bg-emerald-400",
+  connected: "bg-brand",
   error: "bg-priority-critical",
   mocked: "bg-text-muted",
 };

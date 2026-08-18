@@ -23,7 +23,9 @@ export default function Sidebar() {
         .then((data) => {
           if (cancelled) return;
           const { configured, connected } = data.servicenow;
-          setServiceNowState(!configured ? "mocked" : connected ? "connected" : "error");
+          setServiceNowState(
+            !configured ? "mocked" : connected ? "connected" : "error",
+          );
         })
         .catch(() => {
           if (!cancelled) setServiceNowState("error");
@@ -44,11 +46,13 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-border bg-bg-surface">
-      <div className="flex h-16 items-center gap-2 border-b border-border px-5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-sm font-semibold text-white">
-          A
-        </div>
+    <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar-bg">
+      <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-5">
+        <img
+          src="/del_logo.png"
+          alt="Deloitte"
+          className="h-6 w-auto object-contain"
+        />
         <span className="text-sm font-semibold tracking-wide text-text-primary">
           L1 Dispatcher
         </span>
@@ -64,10 +68,10 @@ export default function Sidebar() {
             to={to}
             end={end}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-md border-l-2 px-3 py-2 text-sm transition-colors ${
+              `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
                 isActive
-                  ? "border-accent bg-accent-soft text-text-primary font-medium"
-                  : "border-transparent text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
+                  ? "bg-brand text-white font-medium"
+                  : "text-text-secondary hover:bg-brand-soft hover:text-brand"
               }`
             }
           >
@@ -77,7 +81,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="space-y-4 border-t border-border px-4 py-4">
+      <div className="space-y-4 border-t border-sidebar-border px-4 py-4">
         <div>
           <p className="px-1 pb-2 text-[11px] font-medium uppercase tracking-widest text-text-muted">
             System Status
@@ -96,7 +100,7 @@ export default function Sidebar() {
         </div>
 
         <div className="flex items-center gap-3 rounded-md px-1 py-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand">
             DU
           </div>
           <div className="min-w-0">

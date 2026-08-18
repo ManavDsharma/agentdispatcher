@@ -1,18 +1,18 @@
 const PRIORITY_TONES = {
-  Critical: "text-priority-critical bg-priority-critical-bg",
-  High: "text-priority-high bg-priority-high-bg",
-  Medium: "text-priority-medium bg-priority-medium-bg",
-  Low: "text-priority-low bg-priority-low-bg",
+  Critical: "text-pill-critical bg-pill-critical-bg",
+  High: "text-pill-high bg-pill-high-bg",
+  Medium: "text-pill-medium bg-pill-medium-bg",
+  Low: "text-pill-low bg-pill-low-bg",
 };
 
 const STATUS_TONES = {
-  Open: "text-status-open bg-status-open-bg",
-  "In Progress": "text-status-progress bg-status-progress-bg",
-  "Pending Approval": "text-status-pending bg-status-pending-bg",
-  Resolved: "text-status-resolved bg-status-resolved-bg",
+  Open: "text-pill-open bg-pill-open-bg",
+  "In Progress": "text-pill-progress bg-pill-progress-bg",
+  "Pending Approval": "text-pill-pending bg-pill-pending-bg",
+  Resolved: "text-pill-resolved bg-pill-resolved-bg",
 };
 
-const FALLBACK_TONE = "text-text-secondary bg-bg-surface-hover";
+const FALLBACK_TONE = "text-ink-secondary bg-surface-muted";
 
 function Pill({ tone, children }) {
   return (

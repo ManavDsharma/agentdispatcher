@@ -48,6 +48,56 @@
   --color-sla-critical: #f87171;
   --color-sla-warning: #fbbf24;
   --color-sla-safe: #9aa1b0;
+
+  /* --- App-shell theme (everything except Login/Register) ---
+     White/near-white content, true-black sidebar, green brand accent. */
+
+  /* Brand accent — replaces indigo for the app shell only */
+  --color-brand: #86bc25;
+  --color-brand-hover: #71a31f;
+  --color-brand-soft: #86bc251f;
+
+  /* Sidebar — dedicated true-black tokens, separate from --color-bg-* so
+     Login/Register (which still use --color-bg-surface) are unaffected. */
+  --color-sidebar-bg: #0a0a0a;
+  --color-sidebar-border: #1f1f1f;
+  --color-sidebar-hover: #161616;
+
+  /* Light content surfaces */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f6f8;
+  --color-surface-hover: #eef1f4;
+  --color-surface-border: #e4e7ec;
+
+  /* Light-surface text scale */
+  --color-ink: #111827;
+  --color-ink-secondary: #4b5563;
+  --color-ink-muted: #9ca3af;
+
+  /* Priority pills, tuned for contrast on white */
+  --color-pill-critical: #dc2626;
+  --color-pill-critical-bg: #fee2e2;
+  --color-pill-high: #c2410c;
+  --color-pill-high-bg: #ffedd5;
+  --color-pill-medium: #a16207;
+  --color-pill-medium-bg: #fef9c3;
+  --color-pill-low: #4b5563;
+  --color-pill-low-bg: #f3f4f6;
+
+  /* Status pills, tuned for contrast on white */
+  --color-pill-open: #2563eb;
+  --color-pill-open-bg: #dbeafe;
+  --color-pill-progress: #4f46e5;
+  --color-pill-progress-bg: #e0e7ff;
+  --color-pill-pending: #b45309;
+  --color-pill-pending-bg: #fef3c7;
+  --color-pill-resolved: #16a34a;
+  --color-pill-resolved-bg: #dcfce7;
+
+  /* SLA urgency, tuned for contrast on white */
+  --color-urgency-critical: #dc2626;
+  --color-urgency-warning: #d97706;
+  --color-urgency-safe: #6b7280;
 }
 
 body {
