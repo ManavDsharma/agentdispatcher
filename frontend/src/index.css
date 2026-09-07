@@ -4,64 +4,20 @@
 @theme {
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* Surfaces — near-black, layered depth */
-  --color-bg-base: #0b0e14;
-  --color-bg-surface: #12151c;
-  --color-bg-surface-hover: #171b24;
-  --color-bg-elevated: #1a1e28;
+  /* Sidebar — true-black, used by the app sidebar and the Login brand panel */
+  --color-sidebar-bg: #0a0a0a;
+  --color-sidebar-border: #1f1f1f;
+  --color-sidebar-hover: #161616;
 
-  /* Borders */
-  --color-border: #232733;
-  --color-border-strong: #2e3340;
-
-  /* Text */
+  /* Text scale for content sitting on the dark sidebar/brand panel */
   --color-text-primary: #e8eaed;
   --color-text-secondary: #9aa1b0;
   --color-text-muted: #6b7280;
 
-  /* Accent — indigo/violet */
-  --color-accent: #5b5fef;
-  --color-accent-hover: #6d71f5;
-  --color-accent-soft: #5b5fef24;
-
-  /* Priority colors */
-  --color-priority-critical: #f87171;
-  --color-priority-critical-bg: #ef444420;
-  --color-priority-high: #fbbf24;
-  --color-priority-high-bg: #f59e0b20;
-  --color-priority-medium: #eab308;
-  --color-priority-medium-bg: #eab30820;
-  --color-priority-low: #9aa1b0;
-  --color-priority-low-bg: #9aa1b01a;
-
-  /* Status colors */
-  --color-status-open: #7dd3fc;
-  --color-status-open-bg: #0ea5e920;
-  --color-status-progress: #818cf8;
-  --color-status-progress-bg: #6366f120;
-  --color-status-pending: #fbbf24;
-  --color-status-pending-bg: #f59e0b20;
-  --color-status-resolved: #4ade80;
-  --color-status-resolved-bg: #22c55e20;
-
-  /* SLA urgency */
-  --color-sla-critical: #f87171;
-  --color-sla-warning: #fbbf24;
-  --color-sla-safe: #9aa1b0;
-
-  /* --- App-shell theme (everything except Login/Register) ---
-     White/near-white content, true-black sidebar, green brand accent. */
-
-  /* Brand accent — replaces indigo for the app shell only */
+  /* Brand accent — green */
   --color-brand: #86bc25;
   --color-brand-hover: #71a31f;
   --color-brand-soft: #86bc251f;
-
-  /* Sidebar — dedicated true-black tokens, separate from --color-bg-* so
-     Login/Register (which still use --color-bg-surface) are unaffected. */
-  --color-sidebar-bg: #0a0a0a;
-  --color-sidebar-border: #1f1f1f;
-  --color-sidebar-hover: #161616;
 
   /* Light content surfaces */
   --color-surface: #ffffff;
@@ -101,12 +57,12 @@
 }
 
 body {
-  background-color: var(--color-bg-base);
-  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background-color: var(--color-accent-soft);
+  background-color: var(--color-brand-soft);
 }

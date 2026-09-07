@@ -1,27 +1,19 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
-from app.config import settings
-from app.integrations import servicenow
-from app.mapping.ticket_mapper import map_incident
-from app.mock_data import get_mock_tickets
+from app.services import ticket_service
 
 router = APIRouter(prefix="/api", tags=["tickets"])
 
 
 @router.get("/tickets")
 async def list_tickets():
-    if not settings.servicenow_configured:
-        return {"tickets": get_mock_tickets(), "source": "mock", "reason": "not_configured", "error": None}
+    tickets, meta = await ticket_service.list_tickets()
+    return {"tickets": tickets, **meta}
 
-    try:
-        raw_incidents = await servicenow.get_incidents(limit=50)
-    except servicenow.ServiceNowError as exc:
-        return {
-            "tickets": get_mock_tickets(),
-            "source": "mock",
-            "reason": "connection_error",
-            "error": str(exc),
-        }
 
-    tickets = [map_incident(record) for record in raw_incidents]
-    return {"tickets": tickets, "source": "servicenow", "reason": None, "error": None}
+@router.get("/tickets/{ticket_id}")
+async def get_ticket(ticket_id: str):
+    ticket = await ticket_service.get_ticket(ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return ticket

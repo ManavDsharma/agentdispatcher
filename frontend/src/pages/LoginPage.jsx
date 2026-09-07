@@ -1,26 +1,26 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout";
 import FormField from "../components/auth/FormField";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
-  const { login, demoEmail, demoPassword } = useAuth();
+  const { login, demoUsername, demoPassword } = useAuth();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!email.trim() || !password) {
-      setError("Enter your email ID and password.");
+    if (!username.trim() || !password) {
+      setError("Enter your username and password.");
       return;
     }
-    const ok = login(email, password);
+    const ok = login(username, password);
     if (!ok) {
-      setError("Invalid email or password.");
+      setError("Invalid username or password.");
       return;
     }
     setError("");
@@ -28,25 +28,14 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthLayout
-      eyebrow="Welcome back"
-      title="Login"
-      footer={
-        <>
-          Don&apos;t have an account?{" "}
-          <Link to="/register" className="font-medium text-accent hover:text-accent-hover">
-            Register
-          </Link>
-        </>
-      }
-    >
+    <AuthLayout eyebrow="Welcome back" title="Login">
       <form className="space-y-4" onSubmit={handleSubmit} noValidate>
         <FormField
-          label="Email ID"
-          type="email"
-          placeholder="you@company.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          label="Username"
+          type="text"
+          placeholder="temp"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           autoComplete="username"
         />
         <FormField
@@ -59,20 +48,20 @@ export default function LoginPage() {
         />
 
         {error && (
-          <p className="rounded-md border border-priority-critical-bg bg-priority-critical-bg px-3 py-2 text-xs text-priority-critical">
+          <p className="rounded-md border border-pill-critical-bg bg-pill-critical-bg px-3 py-2 text-xs text-pill-critical">
             {error}
           </p>
         )}
 
         <button
           type="submit"
-          className="w-full rounded-md bg-accent py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
+          className="w-full rounded-md bg-brand py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-hover"
         >
           Login
         </button>
 
-        <p className="text-center text-xs text-text-muted">
-          Demo credentials: {demoEmail} / {demoPassword}
+        <p className="text-center text-xs text-ink-muted">
+          Demo credentials: {demoUsername} / {demoPassword}
         </p>
       </form>
     </AuthLayout>

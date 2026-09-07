@@ -5,6 +5,7 @@ import { PriorityBadge, StatusBadge } from "../components/tickets/Badge";
 import SlaCell from "../components/tickets/SlaCell";
 import RowActionsMenu from "../components/tickets/RowActionsMenu";
 import ToastStack from "../components/tickets/ToastStack";
+import TicketDetailDrawer from "../components/tickets/TicketDetailDrawer";
 import { fetchTickets } from "../services/ticketsService";
 
 const STATUS_TABS = ["All", "Open", "In Progress", "Pending Approval", "Resolved"];
@@ -23,6 +24,7 @@ export default function TicketsPage() {
   const [search, setSearch] = useState("");
 
   const [toasts, setToasts] = useState([]);
+  const [selectedTicket, setSelectedTicket] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,15 +101,15 @@ export default function TicketsPage() {
         {meta.reason === "connection_error" && (
           <div className="mb-4 flex items-start gap-2.5 rounded-md border border-pill-critical-bg bg-pill-critical-bg px-4 py-3 text-sm text-pill-critical">
             <AlertTriangle size={16} className="mt-0.5 shrink-0" strokeWidth={1.75} />
-            <span>Couldn&apos;t reach ServiceNow ({meta.error}). Showing mock data instead.</span>
+            <span>Couldn&apos;t reach the ticket database ({meta.error}). Showing mock data instead.</span>
           </div>
         )}
         {meta.reason === "not_configured" && (
           <div className="mb-4 flex items-start gap-2.5 rounded-md border border-surface-border bg-surface-muted px-4 py-3 text-sm text-ink-secondary">
             <Info size={16} className="mt-0.5 shrink-0 text-ink-muted" strokeWidth={1.75} />
             <span>
-              ServiceNow isn&apos;t configured yet — showing mock data. Add credentials to
-              backend/.env to connect.
+              Ticket database isn&apos;t configured yet — showing mock data. Add
+              DYNAMODB_TABLE_NAME to backend/.env to connect.
             </span>
           </div>
         )}
@@ -203,9 +205,16 @@ export default function TicketsPage() {
                     className="border-b border-surface-border last:border-0 hover:bg-surface-hover"
                   >
                     <td className="px-4 py-3.5 font-medium">
-                      {t.incident_url ? (
+                      {t.management_mode === "internal_edit" ? (
+                        <button
+                          onClick={() => setSelectedTicket(t)}
+                          className="text-brand hover:underline"
+                        >
+                          {t.ticket_id}
+                        </button>
+                      ) : t.external_url ? (
                         <a
-                          href={t.incident_url}
+                          href={t.external_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-brand hover:underline"
@@ -247,6 +256,10 @@ export default function TicketsPage() {
       </main>
 
       <ToastStack toasts={toasts} />
+
+      {selectedTicket && (
+        <TicketDetailDrawer ticket={selectedTicket} onClose={() => setSelectedTicket(null)} />
+      )}
     </>
   );
 }

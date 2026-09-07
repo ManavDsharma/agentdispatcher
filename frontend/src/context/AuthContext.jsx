@@ -1,8 +1,8 @@
 import { createContext, useContext, useState } from "react";
 
 const SESSION_KEY = "l1d_authenticated";
-const DEMO_EMAIL = "demo@l1dispatcher.com";
-const DEMO_PASSWORD = "Demo@123";
+const DEMO_USERNAME = "temp";
+const DEMO_PASSWORD = "temp";
 
 const AuthContext = createContext(null);
 
@@ -11,9 +11,8 @@ export function AuthProvider({ children }) {
     () => sessionStorage.getItem(SESSION_KEY) === "true",
   );
 
-  const login = (email, password) => {
-    const ok =
-      email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD;
+  const login = (username, password) => {
+    const ok = username.trim() === DEMO_USERNAME && password === DEMO_PASSWORD;
     if (ok) {
       sessionStorage.setItem(SESSION_KEY, "true");
       setIsAuthenticated(true);
@@ -28,7 +27,13 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, login, logout, demoEmail: DEMO_EMAIL, demoPassword: DEMO_PASSWORD }}
+      value={{
+        isAuthenticated,
+        login,
+        logout,
+        demoUsername: DEMO_USERNAME,
+        demoPassword: DEMO_PASSWORD,
+      }}
     >
       {children}
     </AuthContext.Provider>

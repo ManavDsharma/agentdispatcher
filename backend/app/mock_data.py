@@ -1,16 +1,19 @@
-"""Fallback ticket dataset, used when ServiceNow isn't configured/reachable.
+"""Fallback ticket dataset, used when DynamoDB isn't configured/reachable.
 
-Already in our mapped ticket shape (not raw ServiceNow records) since this
-path bypasses ServiceNow entirely. SLA/created are computed relative to "now"
-on every call so the fallback still feels live across a long-running process.
+Returns TicketRecord domain objects so the repository layer treats mock and
+real (DynamoDB) data identically — SLA/created are derived at read time via
+TicketRecord.to_api_dict(), not baked in here. Includes a couple of seeded
+"custom" tickets so the internal-edit path has something to render even
+before any ticket has actually been created through our own UI.
 """
 
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
-from app.mapping.sla import compute_sla
+from app.domain.ticket import TicketRecord
 
 # (ticket_id, title, priority, status, category, assignee, minutes_ago)
-_TICKETS = [
+_SERVICENOW_STYLE_TICKETS = [
     ("INC0012850", "Bot failure — AP Invoice Processor", "Critical", "Open", "Bot Failure", "L. Kumar", 15),
     ("INC0012849", "Schedule not triggering — EOD report", "High", "In Progress", "Schedule", "R. Singh", 105),
     ("INC0012848", "Asset update required — SAP credential", "High", "Pending Approval", "Asset", "L. Kumar", 150),
@@ -26,24 +29,72 @@ _TICKETS = [
     ("INC0012838", "Access revoked — Terminated contractor", "Low", "Resolved", "Access", "R. Singh", 2880),
 ]
 
+# (id, title, priority, status, category, assignee, work_notes, minutes_ago)
+_CUSTOM_TICKETS = [
+    (
+        "custom-0001",
+        "VPN access request — new hire onboarding",
+        "Medium",
+        "Open",
+        "Access",
+        "Unassigned",
+        "",
+        45,
+    ),
+    (
+        "custom-0002",
+        "Print server offline — 4th floor",
+        "Low",
+        "In Progress",
+        "Asset",
+        "R. Singh",
+        "Vendor ticket opened, awaiting replacement part.",
+        200,
+    ),
+]
+
 
 def get_mock_tickets() -> list:
     now = datetime.now(timezone.utc)
     tickets = []
-    for ticket_id, title, priority, status, category, assignee, minutes_ago in _TICKETS:
-        opened_at = now - timedelta(minutes=minutes_ago)
-        sla = {"label": "—", "urgency": "safe"} if status == "Resolved" else compute_sla(priority, opened_at)
+
+    for ticket_id, title, priority, status, category, assignee, minutes_ago in _SERVICENOW_STYLE_TICKETS:
         tickets.append(
-            {
-                "ticket_id": ticket_id,
-                "title": title,
-                "priority": priority,
-                "status": status,
-                "category": category,
-                "assignee": assignee,
-                "sla": sla,
-                "created": opened_at.strftime("%b %d, %I:%M %p"),
-                "incident_url": None,
-            }
+            TicketRecord(
+                id=f"servicenow:{ticket_id}",
+                source_system="servicenow",
+                source_ticket_id=ticket_id,
+                management_mode="external_redirect",
+                external_url=None,
+                title=title,
+                priority=priority,
+                status=status,
+                category=category,
+                assignee=assignee,
+                opened_at=now - timedelta(minutes=minutes_ago),
+            )
         )
+
+    for ticket_id, title, priority, status, category, assignee, work_notes, minutes_ago in _CUSTOM_TICKETS:
+        tickets.append(
+            TicketRecord(
+                id=ticket_id,
+                source_system="custom",
+                source_ticket_id=None,
+                management_mode="internal_edit",
+                external_url=None,
+                title=title,
+                priority=priority,
+                status=status,
+                category=category,
+                assignee=assignee,
+                opened_at=now - timedelta(minutes=minutes_ago),
+                work_notes=work_notes,
+            )
+        )
+
     return tickets
+
+
+def get_mock_ticket(ticket_id: str) -> Optional[TicketRecord]:
+    return next((t for t in get_mock_tickets() if t.id == ticket_id), None)
