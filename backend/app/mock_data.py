@@ -1,100 +1,215 @@
 """Fallback ticket dataset, used when DynamoDB isn't configured/reachable.
 
-Returns TicketRecord domain objects so the repository layer treats mock and
-real (DynamoDB) data identically — SLA/created are derived at read time via
-TicketRecord.to_api_dict(), not baked in here. Includes a couple of seeded
-"custom" tickets so the internal-edit path has something to render even
-before any ticket has actually been created through our own UI.
+Held as mutable in-process state (not regenerated per call) so that edits
+made through the API stick for the rest of the session even without real
+DynamoDB — same "always demoable" philosophy used elsewhere in this project.
+Resets on backend restart.
 """
 
-from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from app.domain.ticket import TicketRecord
 
-# (ticket_id, title, priority, status, category, assignee, minutes_ago)
-_SERVICENOW_STYLE_TICKETS = [
-    ("INC0012850", "Bot failure — AP Invoice Processor", "Critical", "Open", "Bot Failure", "L. Kumar", 15),
-    ("INC0012849", "Schedule not triggering — EOD report", "High", "In Progress", "Schedule", "R. Singh", 105),
-    ("INC0012848", "Asset update required — SAP credential", "High", "Pending Approval", "Asset", "L. Kumar", 150),
-    ("INC0012847", "New robot deployment request", "Medium", "Open", "Deployment", "Unassigned", 120),
-    ("INC0012846", "Access request — Orchestrator", "Medium", "Resolved", "Access", "P. Verma", 480),
-    ("INC0012845", "Bot performance degradation — CRM sync", "Medium", "In Progress", "Performance", "R. Singh", 180),
-    ("INC0012844", "Login failure — Orchestrator portal", "Critical", "Open", "Access", "Unassigned", 20),
-    ("INC0012843", "Schedule overlap — Month-end close", "Low", "Pending Approval", "Schedule", "S. Rao", 300),
-    ("INC0012842", "Asset password expiring — Salesforce", "Low", "Open", "Asset", "S. Rao", 600),
-    ("INC0012841", "Deployment rollback needed — Invoice bot v2", "High", "In Progress", "Deployment", "L. Kumar", 60),
-    ("INC0012840", "Bot failure — Vendor reconciliation job", "High", "Resolved", "Bot Failure", "P. Verma", 1440),
-    ("INC0012839", "Performance degradation — Queue processing delayed", "Medium", "Open", "Performance", "Unassigned", 240),
-    ("INC0012838", "Access revoked — Terminated contractor", "Low", "Resolved", "Access", "R. Singh", 2880),
+_RAW_TICKETS = [
+    {
+        "ticket_id": "INC0012850",
+        "source_system": "servicenow",
+        "url": "https://mock-instance.service-now.com/nav_to.do?uri=incident.do?sys_id=8a1b2c3d",
+        "short_description": "Bot failure — AP Invoice Processor",
+        "description": "AP Invoice Processor bot failed during the nightly run with a login timeout.",
+        "category": "Bot Failure",
+        "sub_category": "Login Timeout",
+        "priority": "Critical",
+        "urgency": "High",
+        "state": "Open",
+        "assigned_to": "L. Kumar",
+        "opened_by": "monitoring-bot",
+        "opened_for": "Finance Ops",
+        "team_id": "RPA-L1",
+        "working_notes": "",
+        "created_at": "2026-09-28T02:10:00Z",
+        "updated_at": "2026-09-28T02:10:00Z",
+        "closed_at": None,
+        "assignment_duration": "0h 15m",
+        "assignment_sla": "1h",
+        "resolution_duration": "0h 15m",
+        "resolution_sla": "4h",
+        "has_assignment_sla_breach": False,
+        "has_resolution_sla_breach": False,
+    },
+    {
+        "ticket_id": "INC0012849",
+        "source_system": "servicenow",
+        "url": "https://mock-instance.service-now.com/nav_to.do?uri=incident.do?sys_id=9b2c3d4e",
+        "short_description": "Schedule not triggering — EOD report",
+        "description": "EOD report schedule did not trigger at 22:00 as configured.",
+        "category": "Schedule",
+        "sub_category": "Trigger Failure",
+        "priority": "High",
+        "urgency": "Medium",
+        "state": "In Progress",
+        "assigned_to": "R. Singh",
+        "opened_by": "monitoring-bot",
+        "opened_for": "Reporting",
+        "team_id": "RPA-L1",
+        "working_notes": "",
+        "created_at": "2026-09-28T00:40:00Z",
+        "updated_at": "2026-09-28T01:05:00Z",
+        "closed_at": None,
+        "assignment_duration": "1h 45m",
+        "assignment_sla": "1h",
+        "resolution_duration": "1h 45m",
+        "resolution_sla": "4h",
+        "has_assignment_sla_breach": True,
+        "has_resolution_sla_breach": False,
+    },
+    {
+        "ticket_id": "INC0012848",
+        "source_system": "servicenow",
+        "url": "https://mock-instance.service-now.com/nav_to.do?uri=incident.do?sys_id=1a2b3c4d",
+        "short_description": "Asset update required — SAP credential",
+        "description": "SAP service account credential needs rotation before expiry.",
+        "category": "Asset",
+        "sub_category": "Credential Rotation",
+        "priority": "High",
+        "urgency": "Medium",
+        "state": "Pending Approval",
+        "assigned_to": "L. Kumar",
+        "opened_by": "credential-monitor",
+        "opened_for": "IT Security",
+        "team_id": "RPA-L1",
+        "working_notes": "",
+        "created_at": "2026-09-27T23:55:00Z",
+        "updated_at": "2026-09-28T00:10:00Z",
+        "closed_at": None,
+        "assignment_duration": "2h 30m",
+        "assignment_sla": "4h",
+        "resolution_duration": "2h 30m",
+        "resolution_sla": "8h",
+        "has_assignment_sla_breach": False,
+        "has_resolution_sla_breach": False,
+    },
+    {
+        "ticket_id": "INC0012840",
+        "source_system": "servicenow",
+        "url": "https://mock-instance.service-now.com/nav_to.do?uri=incident.do?sys_id=5e6f7a8b",
+        "short_description": "Bot failure — Vendor reconciliation job",
+        "description": "Vendor reconciliation job failed with a data validation error.",
+        "category": "Bot Failure",
+        "sub_category": "Data Validation",
+        "priority": "High",
+        "urgency": "Low",
+        "state": "Resolved",
+        "assigned_to": "P. Verma",
+        "opened_by": "monitoring-bot",
+        "opened_for": "Finance Ops",
+        "team_id": "RPA-L1",
+        "working_notes": "",
+        "created_at": "2026-09-27T02:10:00Z",
+        "updated_at": "2026-09-27T05:40:00Z",
+        "closed_at": "2026-09-27T05:40:00Z",
+        "assignment_duration": "0h 30m",
+        "assignment_sla": "4h",
+        "resolution_duration": "3h 30m",
+        "resolution_sla": "8h",
+        "has_assignment_sla_breach": False,
+        "has_resolution_sla_breach": False,
+    },
+    {
+        "ticket_id": "ZD-4821",
+        "source_system": "zendesk",
+        "url": None,
+        "short_description": "VPN access request — new hire onboarding",
+        "description": "New hire needs VPN access provisioned before their first day.",
+        "category": "Access",
+        "sub_category": "VPN",
+        "priority": "Medium",
+        "urgency": "Medium",
+        "state": "Open",
+        "assigned_to": "Unassigned",
+        "opened_by": "hr-ops",
+        "opened_for": "New Hire — J. Patel",
+        "team_id": "IT-Access",
+        "working_notes": "",
+        "created_at": "2026-09-28T01:41:00Z",
+        "updated_at": "2026-09-28T01:41:00Z",
+        "closed_at": None,
+        "assignment_duration": "0h 45m",
+        "assignment_sla": "2h",
+        "resolution_duration": "0h 45m",
+        "resolution_sla": "8h",
+        "has_assignment_sla_breach": False,
+        "has_resolution_sla_breach": False,
+    },
+    {
+        "ticket_id": "JIRA-1092",
+        "source_system": "jira",
+        "url": None,
+        "short_description": "Print server offline — 4th floor",
+        "description": "4th floor print server is unreachable; vendor ticket opened.",
+        "category": "Asset",
+        "sub_category": "Hardware",
+        "priority": "Low",
+        "urgency": "Low",
+        "state": "In Progress",
+        "assigned_to": "R. Singh",
+        "opened_by": "facilities",
+        "opened_for": "4th Floor Office",
+        "team_id": "IT-Support",
+        "working_notes": "Vendor ticket opened, awaiting replacement part.",
+        "created_at": "2026-09-27T22:07:00Z",
+        "updated_at": "2026-09-28T00:15:00Z",
+        "closed_at": None,
+        "assignment_duration": "3h 20m",
+        "assignment_sla": "4h",
+        "resolution_duration": "3h 20m",
+        "resolution_sla": "24h",
+        "has_assignment_sla_breach": False,
+        "has_resolution_sla_breach": False,
+    },
+    {
+        "ticket_id": "INT-0007",
+        "source_system": "internal",
+        "url": None,
+        "short_description": "Access revoked — terminated contractor",
+        "description": "Confirm all system access has been revoked for offboarded contractor.",
+        "category": "Access",
+        "sub_category": "Offboarding",
+        "priority": "Low",
+        "urgency": "Low",
+        "state": "Resolved",
+        "assigned_to": "R. Singh",
+        "opened_by": "hr-ops",
+        "opened_for": "Security",
+        "team_id": "IT-Access",
+        "working_notes": "Access confirmed revoked across all systems on 2026-09-26.",
+        "created_at": "2026-09-26T04:00:00Z",
+        "updated_at": "2026-09-26T06:30:00Z",
+        "closed_at": "2026-09-26T06:30:00Z",
+        "assignment_duration": "0h 20m",
+        "assignment_sla": "4h",
+        "resolution_duration": "2h 30m",
+        "resolution_sla": "24h",
+        "has_assignment_sla_breach": False,
+        "has_resolution_sla_breach": False,
+    },
 ]
 
-# (id, title, priority, status, category, assignee, work_notes, minutes_ago)
-_CUSTOM_TICKETS = [
-    (
-        "custom-0001",
-        "VPN access request — new hire onboarding",
-        "Medium",
-        "Open",
-        "Access",
-        "Unassigned",
-        "",
-        45,
-    ),
-    (
-        "custom-0002",
-        "Print server offline — 4th floor",
-        "Low",
-        "In Progress",
-        "Asset",
-        "R. Singh",
-        "Vendor ticket opened, awaiting replacement part.",
-        200,
-    ),
-]
+_MOCK_TICKETS: list = [TicketRecord.from_item(dict(raw)) for raw in _RAW_TICKETS]
 
 
 def get_mock_tickets() -> list:
-    now = datetime.now(timezone.utc)
-    tickets = []
-
-    for ticket_id, title, priority, status, category, assignee, minutes_ago in _SERVICENOW_STYLE_TICKETS:
-        tickets.append(
-            TicketRecord(
-                id=f"servicenow:{ticket_id}",
-                source_system="servicenow",
-                source_ticket_id=ticket_id,
-                management_mode="external_redirect",
-                external_url=None,
-                title=title,
-                priority=priority,
-                status=status,
-                category=category,
-                assignee=assignee,
-                opened_at=now - timedelta(minutes=minutes_ago),
-            )
-        )
-
-    for ticket_id, title, priority, status, category, assignee, work_notes, minutes_ago in _CUSTOM_TICKETS:
-        tickets.append(
-            TicketRecord(
-                id=ticket_id,
-                source_system="custom",
-                source_ticket_id=None,
-                management_mode="internal_edit",
-                external_url=None,
-                title=title,
-                priority=priority,
-                status=status,
-                category=category,
-                assignee=assignee,
-                opened_at=now - timedelta(minutes=minutes_ago),
-                work_notes=work_notes,
-            )
-        )
-
-    return tickets
+    return list(_MOCK_TICKETS)
 
 
 def get_mock_ticket(ticket_id: str) -> Optional[TicketRecord]:
-    return next((t for t in get_mock_tickets() if t.id == ticket_id), None)
+    return next((t for t in _MOCK_TICKETS if t.ticket_id == ticket_id), None)
+
+
+def update_mock_ticket(ticket_id: str, patch: dict) -> Optional[TicketRecord]:
+    for index, ticket in enumerate(_MOCK_TICKETS):
+        if ticket.ticket_id == ticket_id:
+            updated = ticket.model_copy(update=patch)
+            _MOCK_TICKETS[index] = updated
+            return updated
+    return None

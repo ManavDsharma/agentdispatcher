@@ -7,9 +7,7 @@ import RowActionsMenu from "../components/tickets/RowActionsMenu";
 import ToastStack from "../components/tickets/ToastStack";
 import TicketDetailDrawer from "../components/tickets/TicketDetailDrawer";
 import { fetchTickets } from "../services/ticketsService";
-
-const STATUS_TABS = ["All", "Open", "In Progress", "Pending Approval", "Resolved"];
-const PRIORITIES = ["All Priorities", "Critical", "High", "Medium", "Low"];
+import { fetchCategorizationMatrix, fetchRoster } from "../services/referenceService";
 
 let toastId = 0;
 
@@ -25,6 +23,9 @@ export default function TicketsPage() {
 
   const [toasts, setToasts] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
+
+  const [categorizationMatrix, setCategorizationMatrix] = useState([]);
+  const [roster, setRoster] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,18 +46,53 @@ export default function TicketsPage() {
     };
   }, []);
 
+  // Reference data backing the edit form's cascading dropdowns. Failure here
+  // isn't fatal to the page — the drawer just falls back to empty option
+  // lists rather than blocking the ticket list from rendering.
+  useEffect(() => {
+    let cancelled = false;
+    fetchCategorizationMatrix()
+      .then((data) => {
+        if (!cancelled) setCategorizationMatrix(data.items);
+      })
+      .catch(() => {});
+    fetchRoster()
+      .then((data) => {
+        if (!cancelled) setRoster(data.items);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Status/priority values come straight from the DB, which we don't
+  // control the enum for — derive the filter options from what's actually
+  // loaded rather than assuming a fixed set.
+  const statusTabs = useMemo(() => {
+    const values = Array.from(new Set(tickets.map((t) => t.state).filter(Boolean))).sort();
+    return ["All", ...values];
+  }, [tickets]);
+
+  const priorityOptions = useMemo(() => {
+    const values = Array.from(new Set(tickets.map((t) => t.priority).filter(Boolean))).sort();
+    return ["All Priorities", ...values];
+  }, [tickets]);
+
   const tabCounts = useMemo(() => {
     const counts = { All: tickets.length };
-    for (const t of tickets) counts[t.status] = (counts[t.status] ?? 0) + 1;
+    for (const t of tickets) counts[t.state] = (counts[t.state] ?? 0) + 1;
     return counts;
   }, [tickets]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return tickets.filter((t) => {
-      if (statusTab !== "All" && t.status !== statusTab) return false;
+      if (statusTab !== "All" && t.state !== statusTab) return false;
       if (priority !== "All Priorities" && t.priority !== priority) return false;
-      if (q && !`${t.ticket_id} ${t.title} ${t.assignee}`.toLowerCase().includes(q)) return false;
+      if (q && !`${t.ticket_id} ${t.short_description} ${t.assigned_to}`.toLowerCase().includes(q)) {
+        return false;
+      }
       return true;
     });
   }, [tickets, statusTab, priority, search]);
@@ -68,9 +104,9 @@ export default function TicketsPage() {
   };
 
   const handleReminder = (ticket) => {
-    console.log("Send reminder email", { ticketId: ticket.ticket_id, assignee: ticket.assignee });
+    console.log("Send reminder email", { ticketId: ticket.ticket_id, assignee: ticket.assigned_to });
     pushToast(
-      `Reminder email queued for ${ticket.assignee === "Unassigned" ? ticket.ticket_id : ticket.assignee}.`,
+      `Reminder email queued for ${ticket.assigned_to === "Unassigned" ? ticket.ticket_id : ticket.assigned_to}.`,
     );
   };
 
@@ -78,6 +114,12 @@ export default function TicketsPage() {
     if (!window.confirm(`Escalate ${ticket.ticket_id}? This will notify the on-call lead.`)) return;
     console.log("Escalate", { ticketId: ticket.ticket_id, priority: ticket.priority });
     pushToast(`${ticket.ticket_id} escalated.`);
+  };
+
+  const handleTicketSaved = (updated) => {
+    setTickets((prev) => prev.map((t) => (t.ticket_id === updated.ticket_id ? updated : t)));
+    setSelectedTicket(updated);
+    pushToast(`${updated.ticket_id} updated.`);
   };
 
   return (
@@ -120,8 +162,8 @@ export default function TicketsPage() {
           </div>
         )}
 
-        <div className="mb-4 flex items-center gap-1.5">
-          {STATUS_TABS.map((tab) => (
+        <div className="mb-4 flex flex-wrap items-center gap-1.5">
+          {statusTabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setStatusTab(tab)}
@@ -155,7 +197,7 @@ export default function TicketsPage() {
             onChange={(e) => setPriority(e.target.value)}
             className="rounded-md border border-surface-border bg-surface px-3.5 py-2.5 text-sm text-ink outline-none focus:border-brand"
           >
-            {PRIORITIES.map((p) => (
+            {priorityOptions.map((p) => (
               <option key={p} value={p}>
                 {p}
               </option>
@@ -173,7 +215,7 @@ export default function TicketsPage() {
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">Assignee</th>
-                <th className="px-4 py-3 font-medium">SLA</th>
+                <th className="px-4 py-3 font-medium">Resolution SLA</th>
                 <th className="px-4 py-3 font-medium">Created</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
@@ -212,9 +254,9 @@ export default function TicketsPage() {
                         >
                           {t.ticket_id}
                         </button>
-                      ) : t.external_url ? (
+                      ) : t.url ? (
                         <a
-                          href={t.external_url}
+                          href={t.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-brand hover:underline"
@@ -222,26 +264,26 @@ export default function TicketsPage() {
                           {t.ticket_id}
                         </a>
                       ) : (
-                        <span className="text-ink-secondary" title="Mock data — no ServiceNow link">
+                        <span className="text-ink-secondary" title="No source URL on record">
                           {t.ticket_id}
                         </span>
                       )}
                     </td>
-                    <td className="max-w-xs truncate px-4 py-3.5 text-ink" title={t.title}>
-                      {t.title}
+                    <td className="max-w-xs truncate px-4 py-3.5 text-ink" title={t.short_description}>
+                      {t.short_description}
                     </td>
                     <td className="px-4 py-3.5">
                       <PriorityBadge priority={t.priority} />
                     </td>
                     <td className="px-4 py-3.5">
-                      <StatusBadge status={t.status} />
+                      <StatusBadge status={t.state} />
                     </td>
                     <td className="px-4 py-3.5 text-ink-secondary">{t.category}</td>
-                    <td className="px-4 py-3.5 text-ink-secondary">{t.assignee}</td>
+                    <td className="px-4 py-3.5 text-ink-secondary">{t.assigned_to}</td>
                     <td className="px-4 py-3.5">
-                      <SlaCell sla={t.sla} />
+                      <SlaCell value={t.resolution_sla} breached={t.has_resolution_sla_breach} />
                     </td>
-                    <td className="px-4 py-3.5 text-ink-secondary">{t.created}</td>
+                    <td className="px-4 py-3.5 text-ink-secondary">{t.created_at}</td>
                     <td className="px-4 py-3.5 text-right">
                       <RowActionsMenu
                         onReminder={() => handleReminder(t)}
@@ -258,7 +300,14 @@ export default function TicketsPage() {
       <ToastStack toasts={toasts} />
 
       {selectedTicket && (
-        <TicketDetailDrawer ticket={selectedTicket} onClose={() => setSelectedTicket(null)} />
+        <TicketDetailDrawer
+          key={selectedTicket.ticket_id}
+          ticket={selectedTicket}
+          categorizationMatrix={categorizationMatrix}
+          roster={roster}
+          onClose={() => setSelectedTicket(null)}
+          onSaved={handleTicketSaved}
+        />
       )}
     </>
   );

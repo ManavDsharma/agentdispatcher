@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { Ticket, Bot, Settings } from "lucide-react";
 import StatusDot from "./StatusDot";
-import { fetchHealth } from "../../services/healthService";
+import { fetchHealth, fetchAgentHealth } from "../../services/healthService";
 
 const NAV_ITEMS = [
   { label: "Tickets", to: "/", icon: Ticket, end: true },
@@ -13,7 +13,8 @@ const NAV_ITEMS = [
 const POLL_INTERVAL_MS = 30000;
 
 export default function Sidebar() {
-  const [serviceNowState, setServiceNowState] = useState("mocked");
+  const [dbState, setDbState] = useState("mocked");
+  const [agentState, setAgentState] = useState("mocked");
 
   useEffect(() => {
     let cancelled = false;
@@ -21,14 +22,20 @@ export default function Sidebar() {
     const poll = () => {
       fetchHealth()
         .then((data) => {
-          if (cancelled) return;
-          const { configured, connected } = data.servicenow;
-          setServiceNowState(
-            !configured ? "mocked" : connected ? "connected" : "error",
-          );
+          if (!cancelled) setDbState(data.dynamodb_configured ? "connected" : "mocked");
         })
         .catch(() => {
-          if (!cancelled) setServiceNowState("error");
+          if (!cancelled) setDbState("error");
+        });
+
+      fetchAgentHealth()
+        .then((data) => {
+          if (cancelled) return;
+          const connected = data.mode === "agentcore" ? data.configured : data.reachable;
+          setAgentState(connected ? "connected" : data.configured ? "error" : "mocked");
+        })
+        .catch(() => {
+          if (!cancelled) setAgentState("error");
         });
     };
 
@@ -41,8 +48,8 @@ export default function Sidebar() {
   }, []);
 
   const systemStatus = [
-    { label: "ServiceNow", state: serviceNowState },
-    { label: "AI Agent", state: "connected" },
+    { label: "Database", state: dbState },
+    { label: "AI Agent", state: agentState },
   ];
 
   return (

@@ -1,14 +1,8 @@
-const URGENCY_COLOR = {
-  critical: "text-urgency-critical",
-  warning: "text-urgency-warning",
-  safe: "text-urgency-safe",
-};
-
-export default function SlaCell({ sla }) {
-  if (!sla) return <span className="text-ink-muted">—</span>;
+export default function SlaCell({ value, breached }) {
+  if (!value) return <span className="text-ink-muted">—</span>;
   return (
-    <span className={`font-medium ${URGENCY_COLOR[sla.urgency] ?? "text-ink-secondary"}`}>
-      {sla.label}
+    <span className={`font-medium ${breached ? "text-urgency-critical" : "text-urgency-safe"}`}>
+      {value}
     </span>
   );
 }
