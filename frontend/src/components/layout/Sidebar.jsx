@@ -54,14 +54,14 @@ export default function Sidebar() {
 
   return (
     <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar-bg">
-      <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-5">
+      <div className="flex flex-col items-start gap-2 border-b border-sidebar-border px-5 py-5">
         <img
           src="/del_logo.png"
           alt="Deloitte"
-          className="h-6 w-auto object-contain"
+          className="h-14 w-auto object-contain"
         />
         <span className="text-sm font-semibold tracking-wide text-text-primary">
-          L1 Dispatcher
+          DTP Operate Agent
         </span>
       </div>
 
