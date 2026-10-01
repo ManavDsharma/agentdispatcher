@@ -8,6 +8,8 @@ A support-ops web app, conceptually similar to an L1-assistant we've built befor
 
 The original build pulled `incident` records for the Tickets page. That was **fully replaced** with ServiceNow's Compliance Workspace Issues (table `sn_grc_issue`, reached via All → Compliance Workspace → Issues → All Issues → Create an Issue) — `incident` is no longer used anywhere. A new **Create Issue** page/nav item was added, wired to a real `POST` against `sn_grc_issue`. Login/Register were also removed entirely (there was never real auth behind them, and the gate added friction without adding anything real) — the app now opens straight to Tickets. See `docs/GRC_ISSUE_INTEGRATION.md` for the full field contract, how it was reverse-engineered, and what's still open. The rest of this file has been updated in place to reflect this; sections describing Login/Register/`incident` below are historical unless noted otherwise.
 
+**AI Agent and Settings pages were also removed** (not just Login/Register) — the sidebar now has only Tickets and Create Issue. The System Status widget's "AI Agent" status dot stays (it's a separate, still-intentional decision, not tied to the page existing), but there's no `/ai-agent` or `/settings` route anymore. Sections below mentioning these pages are historical.
+
 ## First step, before writing any code
 
 Read this file fully, then read `docs/PRD.md`, then look at every image in `docs/reference-images/`. This is a rough brief, not a rigid spec — some decisions are deliberately left open (marked "OPEN" below and in the PRD) for you to make and justify. Once you've reviewed everything and made those calls, **update this CLAUDE.md yourself** — fill in the OPEN items with your actual decisions (styling approach, folder structure, libraries chosen, ServiceNow client approach, etc.) so this file reflects the real project going forward, not the pre-build brief. Then give me a short summary of what you understood and what you decided before writing app code.
@@ -22,7 +24,7 @@ Read this file fully, then read `docs/PRD.md`, then look at every image in `docs
 - **Icons:** `lucide-react` — clean single-weight line icons, consistent with the enterprise dark aesthetic in the reference images, tree-shakeable.
 - **Frontend build tool:** Vite + React Router — standard, fast pairing for a JS React SPA.
 - **ServiceNow client:** FastAPI backend uses `httpx` (async) with basic auth against the ServiceNow Table API — **`sn_grc_issue`** (Compliance Workspace Issues), not `incident`. Isolated entirely in `app/integrations/servicenow.py`; credentials never leave the backend. Also fetches `sn_grc_issue_rating` live (a reference table, not a static choice list) for the Create Issue form's Issue Rating dropdown.
-- **Agentic layer (LangGraph etc.):** not part of this phase — do not build it yet, just don't architect anything that would block adding it later.
+- **Agentic layer (LangGraph etc.):** not part of this phase. The AI Agent page itself was removed (see pivot note above) rather than kept as a static placeholder — if/when this phase starts, it'll need a page added back, not just logic wired into an existing one.
 
 ## Design system
 
@@ -32,7 +34,7 @@ Enterprise-grade (Deloitte-facing) — must look high-end and considered, not te
 - **Original theme (still used by Login/Register only):** dark mode, near-black backgrounds (`#0B0E14`–`#12151C` range), not pure black; indigo/violet accent (~`#5B5FEF`) for primary actions.
 - **Status colors:** Critical/red, High/amber-orange, Medium/yellow, Resolved/green — pill badges. On the new light app shell these are solid pastel-bg/saturated-text pairs for contrast (`--color-pill-*` tokens); the original soft-tinted-on-dark versions (`--color-priority-*`/`--color-status-*`) remain for anything still on the dark theme.
 - **Typography:** clean sans-serif (Inter or system-ui), generous letter-spacing on labels/eyebrows, uppercase small text for table headers
-- **Layout:** persistent left sidebar nav — **Tickets, AI Agent, Settings** (Tickets is the landing page at `/`; no separate Dashboard nav item — the PRD's "Tickets/Dashboard page" is one page, reachable at `/`). Top bar per page (title + primary action button top-right).
+- **Layout:** persistent left sidebar nav — **Tickets, Create Issue** (Tickets is the landing page at `/`; AI Agent and Settings were removed — see pivot note above). Top bar per page (title + primary action button top-right).
 - **In-app wordmark:** "L1 Dispatcher" (sidebar logo text + browser tab title) — the project's working title in this file stays "Agentic Support Portal," that's just the UI brand name.
 - **Sidebar System Status widget:** ServiceNow + AI Agent only (dropped UiPath Orch. — not part of this phase's integrations, so a mocked dot for it added noise without adding signal).
 - **Density:** data-dense tables without feeling cramped — match row height/padding style in `tickets-page.png`
@@ -42,8 +44,8 @@ Enterprise-grade (Deloitte-facing) — must look high-end and considered, not te
 
 1. ~~**Login / Register**~~ — removed. There was no real auth behind these (one hardcoded demo credential), so the gate was dropped and the app now opens straight to Tickets at `/`.
 2. **Tickets page** — real issues pulled from ServiceNow's `sn_grc_issue` (Compliance Workspace) via the FastAPI backend, displayed with our remapped field set: `issue id, title, priority, status, category, assignee, SLA, created`. Issue ID links out to the real ServiceNow issue URL. Status tabs and priority filter use the real `sn_grc_issue` scales (New/Analyze/Respond/Review/Closed Complete/Closed Incomplete; Critical/High/Moderate/Low/Planning). Per-row action dropdown: "Send reminder email" / "Escalate" (still mocked — only issue _fetching_ is real). Search bar, status filter, priority filter. Export to Excel — chosen but not yet implemented.
-3. **Create Issue page** (`/issues/new`, sidebar nav item) — real form posting to `sn_grc_issue`. Six fields, matching the actual Compliance Workspace Create Issue form: Observation Heading (`short_description`, the only ServiceNow-enforced-mandatory field), Observation Category (`issue_type`), Classification (`classification`), Priority (`priority`), Issue Rating (`issue_rating` — a reference field to `sn_grc_issue_rating`, fetched live, never hardcoded), Observation Description (`description`). On success, shows the created issue number (and a link, if the instance URL is configured). See `docs/GRC_ISSUE_INTEGRATION.md` for the full contract and how each field was confirmed.
-4. **AI Agent page** — static chat UI matching `ai-agent-chat.png`. No real LLM call yet — canned/echo responses are fine. This stays fully mock this phase.
+3. **Create Issue page** (`/issues/new`, sidebar nav item) — real form posting to `sn_grc_issue`. Six fields, matching the actual Compliance Workspace Create Issue form: Observation Heading (`short_description`, the only ServiceNow-enforced-mandatory field), Observation Category (`issue_type`), Classification (`classification`), Priority (`priority`), Issue Rating (`issue_rating` — a reference field to `sn_grc_issue_rating`, fetched live, never hardcoded), Observation Description (`description`). On success, shows the created issue number (and a link, if the instance URL is configured). Also has a **"Show Similar Incidents"** button (separate external AWS API Gateway/Lambda matcher, not ServiceNow) — requires Observation Heading + Description filled, sends the form as display-label JSON, shows a 5-10s loading state, then the top matches as cards. See `docs/GRC_ISSUE_INTEGRATION.md` for the full contract and how each field was confirmed, plus the Similar Incidents payload/response shape.
+4. ~~**AI Agent page**~~ / ~~**Settings page**~~ — removed. Both were fully static/mock with nothing real behind them, so they were dropped rather than kept as placeholders. No `/ai-agent` or `/settings` route exists.
 
 ## ServiceNow integration (in scope this phase)
 
@@ -64,7 +66,8 @@ L1_dispatcher/
               src/pages/TicketsPage.jsx, src/pages/CreateIssuePage.jsx
               src/services/issuesService.js
   backend/    FastAPI app — app/main.py, app/routes/issues.py, app/integrations/servicenow.py,
-              app/mapping/issue_mapper.py, app/mapping/sla.py, app/config.py, app/mock_data.py, .env.example
+              app/integrations/similar_issues.py, app/mapping/issue_mapper.py, app/mapping/sla.py,
+              app/config.py, app/mock_data.py, .env.example
   docs/       PRD + reference images + GRC_ISSUE_INTEGRATION.md
   CLAUDE.md
 ```
@@ -79,7 +82,7 @@ L1_dispatcher/
 ## Non-goals right now
 
 - No real auth/DB (login/register were removed rather than kept static — there's nothing gating the app now)
-- No real agent/LLM behind the chat page
+- No AI Agent chat page right now (removed, not just mocked — see pivot note); no real agent/LLM either, for whenever it's added back
 - No real execution of reminder/escalate actions (display + mock confirmation only)
 - No production deployment concerns
 

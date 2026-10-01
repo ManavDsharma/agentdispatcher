@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.config import settings
-from app.integrations import servicenow
+from app.integrations import servicenow, similar_issues
 from app.mapping.issue_mapper import (
     CLASSIFICATION_CHOICES,
     ISSUE_TYPE_CHOICES,
@@ -24,6 +24,15 @@ class CreateIssueRequest(BaseModel):
     priority: Optional[str] = None
     issue_type: Optional[str] = None
     issue_rating: Optional[str] = None
+
+
+class SimilarIssuesRequest(BaseModel):
+    observation_heading: str
+    observation_description: str
+    observation_category: Optional[str] = ""
+    classification: Optional[str] = ""
+    priority: Optional[str] = ""
+    issue_rating: Optional[str] = ""
 
 
 @router.get("/issues")
@@ -79,3 +88,35 @@ async def create_issue(body: CreateIssueRequest):
     issue_url = f"{instance_url}/nav_to.do?uri=sn_grc_issue.do?sys_id={sys_id}" if instance_url and sys_id else None
 
     return {"number": result.get("number"), "sys_id": sys_id, "issue_url": issue_url}
+
+
+@router.post("/issues/similar")
+async def similar_issues_lookup(body: SimilarIssuesRequest):
+    if not settings.similar_issues_configured:
+        raise HTTPException(status_code=503, detail="Similar issues API is not configured")
+
+    try:
+        result = await similar_issues.find_similar_issues(body.model_dump())
+    except similar_issues.SimilarIssuesError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    instance_url = (settings.servicenow_instance_url or "").rstrip("/")
+    matches = []
+    for m in result.get("matches", []):
+        issue_id = m.get("issueId")
+        matches.append(
+            {
+                "issue_id": issue_id,
+                "title": m.get("shortDescription"),
+                "description": m.get("description"),
+                "score": m.get("score"),
+                "classification": m.get("classification"),
+                "issue_url": (
+                    f"{instance_url}/nav_to.do?uri=sn_grc_issue_list.do?sysparm_query=number={issue_id}"
+                    if instance_url and issue_id
+                    else None
+                ),
+            }
+        )
+
+    return {"matches": matches}

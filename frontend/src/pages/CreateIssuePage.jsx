@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, AlertTriangle } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Sparkles, Loader2, ExternalLink } from "lucide-react";
 import Topbar from "../components/layout/Topbar";
-import { fetchIssueOptions, createIssue } from "../services/issuesService";
+import { fetchIssueOptions, createIssue, findSimilarIssues } from "../services/issuesService";
 
 const EMPTY_FORM = {
   short_description: "",
@@ -27,6 +27,10 @@ function Field({ label, required, children }) {
 const selectClass =
   "w-full rounded-md border border-surface-border bg-surface px-3.5 py-2.5 text-sm text-ink outline-none focus:border-brand";
 
+function labelFor(list, value) {
+  return list.find((o) => o.value === value)?.label || "";
+}
+
 export default function CreateIssuePage() {
   const [options, setOptions] = useState({
     classification: [],
@@ -39,11 +43,47 @@ export default function CreateIssuePage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  const [similarLoading, setSimilarLoading] = useState(false);
+  const [similarValidation, setSimilarValidation] = useState(null);
+  const [similarError, setSimilarError] = useState(null);
+  const [similarMatches, setSimilarMatches] = useState(null);
+
   useEffect(() => {
     fetchIssueOptions().then(setOptions).catch(() => {});
   }, []);
 
   const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const handleShowSimilar = async () => {
+    setSimilarError(null);
+    setSimilarMatches(null);
+
+    if (!form.short_description.trim() || !form.description.trim()) {
+      setSimilarValidation(
+        "Please fill in Observation Heading and Observation Description to find similar incidents.",
+      );
+      return;
+    }
+    setSimilarValidation(null);
+    setSimilarLoading(true);
+
+    try {
+      const payload = {
+        observation_heading: form.short_description,
+        observation_description: form.description,
+        observation_category: labelFor(options.issue_type, form.issue_type),
+        classification: labelFor(options.classification, form.classification),
+        priority: labelFor(options.priority, form.priority),
+        issue_rating: labelFor(options.issue_rating, form.issue_rating),
+      };
+      const data = await findSimilarIssues(payload);
+      setSimilarMatches(data.matches || []);
+    } catch (err) {
+      setSimilarError(err.message);
+    } finally {
+      setSimilarLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -149,14 +189,97 @@ export default function CreateIssuePage() {
               />
             </Field>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-md bg-brand px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
-            >
-              {submitting ? "Creating…" : "Create Issue"}
-            </button>
+            {similarValidation && (
+              <div className="flex items-start gap-2.5 rounded-md border border-pill-critical-bg bg-pill-critical-bg px-4 py-3 text-sm text-pill-critical">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" strokeWidth={1.75} />
+                <span>{similarValidation}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded-md bg-brand px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
+              >
+                {submitting ? "Creating…" : "Create Issue"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleShowSimilar}
+                disabled={similarLoading}
+                className="flex items-center gap-2 rounded-md border border-surface-border bg-surface px-4 py-2.5 text-sm font-medium text-ink-secondary transition-colors hover:border-brand hover:text-brand disabled:opacity-50"
+              >
+                {similarLoading ? (
+                  <Loader2 size={16} strokeWidth={1.75} className="animate-spin" />
+                ) : (
+                  <Sparkles size={16} strokeWidth={1.75} />
+                )}
+                {similarLoading ? "Searching…" : "Show Similar Incidents"}
+              </button>
+            </div>
           </form>
+
+          {similarLoading && (
+            <div className="mt-6 flex items-center gap-2.5 rounded-lg border border-surface-border bg-surface p-6 text-sm text-ink-muted">
+              <Loader2 size={16} strokeWidth={1.75} className="animate-spin shrink-0" />
+              <span>Searching for similar incidents… this can take up to 10 seconds.</span>
+            </div>
+          )}
+
+          {similarError && (
+            <div className="mt-6 flex items-start gap-2.5 rounded-md border border-pill-critical-bg bg-pill-critical-bg px-4 py-3 text-sm text-pill-critical">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" strokeWidth={1.75} />
+              <span>Couldn&apos;t fetch similar incidents ({similarError}).</span>
+            </div>
+          )}
+
+          {similarMatches && (
+            <div className="mt-6 rounded-lg border border-surface-border bg-surface p-6">
+              <p className="mb-4 text-[11px] font-medium uppercase tracking-widest text-ink-muted">
+                Similar Incidents
+              </p>
+
+              {similarMatches.length === 0 ? (
+                <p className="text-sm text-ink-muted">No similar incidents found.</p>
+              ) : (
+                <div className="space-y-3">
+                  {similarMatches.map((m) => (
+                    <div
+                      key={m.issue_id}
+                      className="rounded-md border border-surface-border p-4 transition-colors hover:border-brand/40"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        {m.issue_url ? (
+                          <a
+                            href={m.issue_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 font-medium text-brand hover:underline"
+                          >
+                            {m.issue_id}
+                            <ExternalLink size={12} strokeWidth={1.75} />
+                          </a>
+                        ) : (
+                          <span className="font-medium text-ink">{m.issue_id}</span>
+                        )}
+                        {typeof m.score === "number" && (
+                          <span className="shrink-0 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-medium text-brand">
+                            {(m.score * 100).toFixed(1)}% match
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1.5 text-sm font-medium text-ink">{m.title}</p>
+                      {m.description && (
+                        <p className="mt-1 line-clamp-3 text-sm text-ink-secondary">{m.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </>

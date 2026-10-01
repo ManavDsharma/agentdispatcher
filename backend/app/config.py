@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     servicenow_username: Optional[str] = None
     servicenow_password: Optional[str] = None
 
+    similar_issues_api_url: Optional[str] = None
+    similar_issues_api_key: Optional[str] = None
+
     cors_origins: str = "http://localhost:5173"
 
     @property
@@ -19,6 +22,10 @@ class Settings(BaseSettings):
             and self.servicenow_username
             and self.servicenow_password
         )
+
+    @property
+    def similar_issues_configured(self) -> bool:
+        return bool(self.similar_issues_api_url)
 
     @property
     def cors_origin_list(self) -> list[str]:

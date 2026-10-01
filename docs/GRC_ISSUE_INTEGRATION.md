@@ -69,6 +69,56 @@ fields.
 - `src/pages/CreateIssuePage.jsx` — new page at `/issues/new`, reachable via
   the "Create Issue" sidebar item and the Tickets page's top-right button.
 
+## Show Similar Incidents
+
+A "Show Similar Incidents" button on the Create Issue form sends the
+in-progress form fields to an external similarity-matching API (AWS API
+Gateway + Lambda, separate from ServiceNow) and shows the top matches.
+
+- **Mandatory to use it:** Observation Heading and Observation Description.
+  Clicking the button with either blank shows an inline validation message
+  instead of calling the API — same visual treatment as other error banners
+  on this page, doesn't touch ServiceNow or the external service.
+- **What gets sent:** a flat JSON object with the 6 form fields, using
+  **display labels, not ServiceNow codes/sys_ids** — e.g. `classification:
+  "Risk"` not `"2"`, `issue_rating: "2 - High"` not its `sys_id`. The matcher
+  is a free-text NLP service, not ServiceNow, so it needs human-readable
+  values. The frontend looks these labels up from the already-loaded
+  `/api/issues/options` lists (`labelFor()` in `CreateIssuePage.jsx`) rather
+  than hardcoding them again.
+  ```json
+  {
+    "observation_heading": "Unauthorized access to production system",
+    "observation_category": "Non-compliance to a policy",
+    "classification": "Risk",
+    "priority": "2 - High",
+    "issue_rating": "2 - High",
+    "observation_description": "User access was identified for an employee who no longer requires access to the production environment."
+  }
+  ```
+- **Backend:** `app/integrations/similar_issues.py` (`find_similar_issues()`)
+  POSTs this payload to `SIMILAR_ISSUES_API_URL` (30s timeout — the matcher
+  can take 5-10s), with an optional `x-api-key` header from
+  `SIMILAR_ISSUES_API_KEY`. `POST /api/issues/similar` in `routes/issues.py`
+  wraps it, reshapes the response's `matches[]` (`issueId`/`shortDescription`
+  → `issue_id`/`title`, score, classification) and attaches a constructed
+  ServiceNow list-view link per match (`sn_grc_issue_list.do?sysparm_query=
+  number=<id>`, since the matcher only returns the issue number, not a
+  `sys_id` to link by). Returns 503 if `SIMILAR_ISSUES_API_URL` isn't set.
+- **Frontend:** `findSimilarIssues()` in `issuesService.js`, called from
+  `CreateIssuePage.jsx`. Three states, all styled consistently with the rest
+  of the page: inline validation (missing fields), a loading banner with a
+  spinner ("this can take up to 10 seconds" — set expectations since the
+  real call is slow), and a results panel of cards (issue id + link, score as
+  a "% match" pill, title, truncated description). This is independent of
+  the Create Issue submit button — it's a `type="button"`, not a form
+  submit, so clicking it never creates or saves anything.
+- **Needs configuring:** `SIMILAR_ISSUES_API_URL` (and `SIMILAR_ISSUES_API_KEY`
+  if the gateway requires one) in `backend/.env` — see `.env.example`. Not
+  yet wired to a real endpoint; verified against a mocked response during
+  development (see the "Field contract" section's process — same live-check
+  discipline applied here).
+
 ## Data volume — deliberate decision, not an oversight
 
 The real `sn_grc_issue` table has ~2,676 records. `GET /api/issues` calls

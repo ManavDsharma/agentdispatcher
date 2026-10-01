@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Ticket, FilePlus, Bot, Settings } from "lucide-react";
+import { Ticket, FilePlus } from "lucide-react";
 import StatusDot from "./StatusDot";
 import { fetchHealth } from "../../services/healthService";
 
 const NAV_ITEMS = [
   { label: "Tickets", to: "/", icon: Ticket, end: true },
   { label: "Create Issue", to: "/issues/new", icon: FilePlus },
-  { label: "AI Agent", to: "/ai-agent", icon: Bot },
-  { label: "Settings", to: "/settings", icon: Settings },
 ];
 
 const POLL_INTERVAL_MS = 30000;
