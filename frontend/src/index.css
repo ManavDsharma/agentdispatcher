@@ -1,0 +1,83 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Sidebar — true-black, used by the app sidebar and the Login brand panel */
+  --color-sidebar-bg: #0a0a0a;
+  --color-sidebar-border: #1f1f1f;
+  --color-sidebar-hover: #161616;
+
+  /* Text scale for content sitting on the dark sidebar/brand panel */
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #9aa1b0;
+  --color-text-muted: #6b7280;
+
+  /* Brand accent — green */
+  --color-brand: #86bc25;
+  --color-brand-hover: #71a31f;
+  --color-brand-soft: #86bc251f;
+
+  /* Light content surfaces */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f6f8;
+  --color-surface-hover: #eef1f4;
+  --color-surface-border: #e4e7ec;
+
+  /* Light-surface text scale */
+  --color-ink: #111827;
+  --color-ink-secondary: #4b5563;
+  --color-ink-muted: #9ca3af;
+
+  /* Priority pills, tuned for contrast on white */
+  --color-pill-critical: #dc2626;
+  --color-pill-critical-bg: #fee2e2;
+  --color-pill-high: #c2410c;
+  --color-pill-high-bg: #ffedd5;
+  --color-pill-medium: #a16207;
+  --color-pill-medium-bg: #fef9c3;
+  --color-pill-low: #4b5563;
+  --color-pill-low-bg: #f3f4f6;
+
+  /* Status pills, tuned for contrast on white */
+  --color-pill-open: #2563eb;
+  --color-pill-open-bg: #dbeafe;
+  --color-pill-progress: #4f46e5;
+  --color-pill-progress-bg: #e0e7ff;
+  --color-pill-pending: #b45309;
+  --color-pill-pending-bg: #fef3c7;
+  --color-pill-resolved: #16a34a;
+  --color-pill-resolved-bg: #dcfce7;
+
+  /* SLA urgency, tuned for contrast on white */
+  --color-urgency-critical: #dc2626;
+  --color-urgency-warning: #d97706;
+  --color-urgency-safe: #6b7280;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--color-brand-soft);
+}
+
+
+/* ============================================================
+   HIDDEN SCROLLBARS
+   Keeps scrolling functionality but removes the visible bar.
+   ============================================================ */
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
